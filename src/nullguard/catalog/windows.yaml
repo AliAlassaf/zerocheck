@@ -1,0 +1,80 @@
+# Investigative questions for Windows endpoints, mapped to Elastic Agent data streams.
+#
+# Each question lists alternative sources. A moment in the investigation window
+# counts as observable when at least one usable source covers it for the entity.
+# Index patterns and filters follow Elastic integration defaults (ECS); override
+# them with your own catalog file if your pipeline differs.
+
+- id: process_execution
+  description: Did a given process run on a host?
+  entity_field: host.name
+  match_fields: [process.name, process.executable, process.command_line, process.parent.name, user.name]
+  sources:
+    - name: sysmon_process_create
+      index: logs-windows.sysmon_operational-*
+      filter: {event.code: "1"}
+      required_fields: [process.name, process.command_line, process.parent.name]
+      max_silence: 30m
+    - name: security_4688
+      index: logs-system.security-*
+      filter: {event.code: "4688"}
+      required_fields: [process.name, process.command_line]
+      max_silence: 30m
+
+- id: network_connection
+  description: Did a host open a connection to a given destination?
+  entity_field: host.name
+  match_fields: [destination.ip, destination.port, destination.domain, process.name]
+  sources:
+    - name: sysmon_network_connect
+      index: logs-windows.sysmon_operational-*
+      filter: {event.code: "3"}
+      required_fields: [destination.ip, destination.port, process.name]
+      max_silence: 1h
+
+- id: dns_query
+  description: Did a host resolve a given domain?
+  entity_field: host.name
+  match_fields: [dns.question.name, process.name]
+  sources:
+    - name: sysmon_dns_query
+      index: logs-windows.sysmon_operational-*
+      filter: {event.code: "22"}
+      required_fields: [dns.question.name, process.name]
+      max_silence: 1h
+
+- id: user_logon
+  description: Did an account log on to a host?
+  entity_field: host.name
+  match_fields: [user.name, source.ip, winlog.logon.type]
+  sources:
+    - name: security_4624
+      index: logs-system.security-*
+      filter: {event.code: "4624"}
+      required_fields: [user.name, winlog.logon.type]
+      max_silence: 2h
+
+- id: powershell_script
+  description: Did a PowerShell script block containing given content run on a host?
+  entity_field: host.name
+  match_fields: [powershell.file.script_block_text, file.path, user.name]
+  sources:
+    - name: powershell_4104
+      index: logs-windows.powershell_operational-*
+      filter: {event.code: "4104"}
+      required_fields: [powershell.file.script_block_text]
+      max_silence: 4h
+
+- id: scheduled_task_created
+  description: Was a scheduled task created on a host?
+  entity_field: host.name
+  match_fields: [winlog.event_data.TaskName, user.name]
+  sources:
+    - name: security_4698
+      index: logs-system.security-*
+      filter: {event.code: "4698"}
+      required_fields: [winlog.event_data.TaskName]
+      # Task creation is rare, so silence of 4698 itself proves nothing.
+      # Liveness of the Security channel on the host is checked instead.
+      liveness_filter: {}
+      max_silence: 2h

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nullguard"
+version = "0.1.0"
+description = "Tell a verified negative from a blind spot: checks whether an empty SIEM search could have seen the activity."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6"]
+keywords = ["soc", "siem", "threat-hunting", "incident-response", "elastic", "mcp"]
+
+[project.optional-dependencies]
+mcp = ["mcp>=2"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+nullguard = "nullguard.cli:main"
+nullguard-mcp = "nullguard.mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"nullguard.catalog" = ["*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
