@@ -12,6 +12,8 @@ from .models import Gap, GapReason, Question, Result, Source, Verdict, parse_tim
 # Tolerated distance between the newest ingested event and the window end
 # before the tail of the window is reported as not yet ingested.
 DEFAULT_INGEST_TOLERANCE = timedelta(minutes=5)
+# Smallest histogram bucket used for silence detection.
+DEFAULT_MIN_BUCKET = timedelta(minutes=1)
 
 
 class Verifier:
@@ -21,11 +23,13 @@ class Verifier:
         questions: dict[str, Question],
         now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
         ingest_tolerance: timedelta = DEFAULT_INGEST_TOLERANCE,
+        min_bucket: timedelta = DEFAULT_MIN_BUCKET,
     ):
         self.backend = backend
         self.questions = questions
         self.now = now
         self.ingest_tolerance = ingest_tolerance
+        self.min_bucket = min_bucket
 
     def verify(
         self,
@@ -122,7 +126,7 @@ class Verifier:
                     f"newest ingested event is {latest.isoformat()}")
             )
 
-        for silent in self._silent_runs(source, entity_filter, window):
+        for silent in self._silent_runs(source, entity_filter, window, alive_bounds):
             for part in iv.subtract(silent, hard_limits):
                 clipped = iv.clip(part, window)
                 if clipped:
@@ -141,12 +145,23 @@ class Verifier:
         return iv.subtract(window, unobservable), gaps, matches
 
     def _silent_runs(
-        self, source: Source, entity_filter: dict[str, Any], window: iv.Interval
+        self,
+        source: Source,
+        entity_filter: dict[str, Any],
+        window: iv.Interval,
+        alive_bounds: tuple[datetime, datetime],
     ) -> list[iv.Interval]:
-        """Stretches around the window where the entity sent nothing for >= max_silence."""
-        ext_start = window[0] - source.max_silence
-        ext_end = min(window[1] + source.max_silence, self.now())
-        bucket = max(timedelta(minutes=1), source.max_silence / 6)
+        """Stretches around the window where the entity sent nothing for >= max_silence.
+
+        Only time inside the source's stored range counts: before the oldest or after the
+        newest stored event, silence is retention or ingestion lag, reported separately.
+        """
+        earliest, latest = alive_bounds
+        ext_start = max(window[0] - source.max_silence, earliest)
+        ext_end = min(window[1] + source.max_silence, self.now(), latest + timedelta(microseconds=1))
+        if ext_start >= ext_end:
+            return []
+        bucket = max(self.min_bucket, source.max_silence / 6)
         counts = self.backend.bucket_counts(
             source.index, {**source.alive_filter, **entity_filter}, ext_start, ext_end, bucket
         )

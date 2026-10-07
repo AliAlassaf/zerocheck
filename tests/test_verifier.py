@@ -121,3 +121,11 @@ def test_result_serializes():
     assert data["verdict"] == "INSUFFICIENT_VISIBILITY"
     assert all("next_step" in g for g in data["gaps"])
     assert datetime.fromisoformat(data["start"]).tzinfo == timezone.utc
+
+
+def test_time_before_oldest_stored_event_is_not_host_silence():
+    # Storage starts at 02:00; WS speaks at 02:10 and steadily after. The 10 minutes after the
+    # retention boundary are shorter than max_silence and must not become a source_silent gap.
+    events = list(steady("OTHER", H(2), H(11))) + list(steady("WS", H(2, 10), H(11)))
+    result = verifier(events).verify("process_execution", "WS", H(2), H(5), {"process.name": "evil.exe"})
+    assert result.verdict is Verdict.VERIFIED_NEGATIVE
