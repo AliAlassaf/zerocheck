@@ -119,6 +119,16 @@ Questions are YAML. The built-ins in [`src/zerocheck/catalog/windows.yaml`](src/
 
 For rare events (such as 4698 task creation), the event's own silence proves nothing. Set `liveness_filter` to judge liveness from the whole channel instead.
 
+## Evaluation
+
+ZeroCheck was tested on 14 real attack recordings from [OTRF Security-Datasets](https://github.com/OTRF/Security-Datasets) (credential dumping, LOLBins, discovery, scheduled tasks), with six visibility failures injected so that a plain search for the attack returns zero results. Treating that zero as "didn't happen" misses all 84 blind spots.
+
+- **Parser drift, logging disabled, access denied and retention:** 56/56 detected, with no false warnings on clean data.
+- **Ingestion lag:** 13/14 detected. The miss sat inside the lag tolerance.
+- **Sensor outages:** this is the weak spot. A fixed silence threshold either catches every outage and raises false warnings on 43–64% of clean recordings, or raises none and catches 8 of 14. Per-host baselines are the next step.
+
+Method, findings and limitations (the recordings are seconds long, so thresholds were scaled to seconds) are in [evaluation/README.md](evaluation/README.md). Full numbers are in [evaluation/RESULTS.md](evaluation/RESULTS.md). To reproduce, run `python evaluation/run.py`.
+
 ## Limitations (v0.1)
 
 - `max_silence` is configured per source, not learned from each host's baseline yet. A host that is legitimately idle overnight can trigger a false `source_silent` warning.
@@ -129,8 +139,9 @@ For rare events (such as 4698 task creation), the event's own silence proves not
 
 ## Roadmap
 
-- [ ] Evaluation harness: inject visibility failures into [OTRF Security-Datasets](https://github.com/OTRF/Security-Datasets) replays and publish detection and false-warning rates
-- [ ] Per-host silence baselines in place of fixed `max_silence`
+- [x] Evaluation harness on [OTRF Security-Datasets](https://github.com/OTRF/Security-Datasets) with injected visibility failures ([results](evaluation/RESULTS.md))
+- [ ] Per-host silence baselines in place of fixed `max_silence` (the evaluation's main finding)
+- [ ] Evaluation on longer recordings and more question types
 - [ ] Microsoft Sentinel (KQL) backend
 - [ ] Raw-vs-parsed replay checks for schema mappings
 - [ ] Optional LLM step that maps a free-text analyst question to a catalog question

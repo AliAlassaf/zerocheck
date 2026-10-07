@@ -1,0 +1,28 @@
+# OTRF Security-Datasets recordings used for the evaluation.
+# `indicator` is the attack's process, confirmed by hand in each recording's
+# Sysmon EID 1 and Security 4688 events; the harness re-checks it on every run.
+# `known_gaps` are periods where the host itself produced no telemetry in the
+# original recording (confirmed by hand); warnings inside them are real, not false.
+# Source: https://github.com/OTRF/Security-Datasets (datasets/atomic/windows/...)
+
+- {name: cmd_sam_copy_esentutl, path: credential_access/host/cmd_sam_copy_esentutl.zip, technique: T1003.002, host: WORKSTATION5, indicator: esentutl.exe}
+- {name: cmd_dumping_ntds_dit_file_ntdsutil, path: credential_access/host/cmd_dumping_ntds_dit_file_ntdsutil.zip, technique: T1003.003, host: DC01.pandalab.com, indicator: ntdsutil.exe}
+- {name: cmd_lsass_memory_dumpert_syscalls, path: credential_access/host/cmd_lsass_memory_dumpert_syscalls.zip, technique: T1003.001, host: WORKSTATION5, indicator: Outflank-Dumpert.exe}
+- {name: psh_lsass_memory_dump_comsvcs, path: credential_access/host/psh_lsass_memory_dump_comsvcs.zip, technique: T1003.001, host: WORKSTATION5, indicator: rundll32.exe}
+- {name: cmd_bitsadmin_download_psh_script, path: defense_evasion/host/cmd_bitsadmin_download_psh_script.zip, technique: T1197, host: WORKSTATION5, indicator: bitsadmin.exe}
+- {name: cmd_mshta_vbscript_execute_psh, path: defense_evasion/host/cmd_mshta_vbscript_execute_psh.zip, technique: T1218.005, host: WORKSTATION5, indicator: mshta.exe}
+- {name: psh_cmstp_execution_bypassuac, path: defense_evasion/host/psh_cmstp_execution_bypassuac.zip, technique: T1218.003, host: WORKSTATION5, indicator: cmstp.exe}
+- {name: psh_mavinject_dll_notepad, path: defense_evasion/host/psh_mavinject_dll_notepad.zip, technique: T1218.013, host: WORKSTATION5, indicator: mavinject.exe}
+- {name: cmd_netsh_fw_mod_open_ports, path: defense_evasion/host/cmd_netsh_fw_mod_open_ports.zip, technique: T1562.004, host: WORKSTATION5, indicator: netsh.exe}
+- {name: wmic_remote_xsl_jscript, path: defense_evasion/host/wmic_remote_xsl_jscript.zip, technique: T1220, host: WORKSTATION5, indicator: WMIC.exe}
+- {name: empire_shell_net_local_users, path: discovery/host/empire_shell_net_local_users.zip, technique: T1087.001, host: WORKSTATION5.theshire.local, indicator: net.exe}
+- {name: psh_python_webserver, path: execution/host/psh_python_webserver.zip, technique: T1059.006, host: WORKSTATION5, indicator: python.exe}
+- {name: schtask_create, path: lateral_movement/host/schtask_create.zip, technique: T1053.005, host: WORKSTATION5.theshire.local, indicator: schtasks.exe}
+- name: empire_schtasks_creation_execution_elevated_user
+  path: persistence/host/empire_schtasks_creation_execution_elevated_user.zip
+  technique: T1053.005
+  host: WORKSTATION5.theshire.local
+  indicator: schtasks.exe
+  # shutdown.exe /r at 21:59:06; the host sends nothing 21:59:40-22:00:26; smss.exe (boot) at 22:00:29.
+  known_gaps:
+    - {start: "2020-09-21T21:59:40Z", end: "2020-09-21T22:00:26Z", cause: reboot}
