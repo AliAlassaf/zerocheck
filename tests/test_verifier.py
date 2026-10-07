@@ -2,9 +2,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from nullguard import GapReason, Verdict, Verifier, load_catalog
-from nullguard.backends import MemoryBackend
-from nullguard.demo import NOW, build_lab
+from zerocheck import GapReason, Verdict, Verifier, load_catalog
+from zerocheck.backends import MemoryBackend
+from zerocheck.demo import NOW, build_lab
 
 SYSMON = "logs-windows.sysmon_operational-default"
 SECURITY = "logs-system.security-default"

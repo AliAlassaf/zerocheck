@@ -1,7 +1,7 @@
-"""Load the synthetic demo lab into Elasticsearch so `nullguard verify` can run against it.
+"""Load the synthetic demo lab into Elasticsearch so `zerocheck verify` can run against it.
 
 Usage:
-    python scripts/load_demo_into_elastic.py            # uses NULLGUARD_ES_URL (default http://localhost:9200)
+    python scripts/load_demo_into_elastic.py            # uses ZEROCHECK_ES_URL (default http://localhost:9200)
 
 Events go into `logs-*` data streams, which Elasticsearch maps with keyword strings
 the same way Elastic Agent integrations do.
@@ -15,11 +15,11 @@ import sys
 import urllib.request
 from datetime import datetime
 
-from nullguard.demo import build_lab
+from zerocheck.demo import build_lab
 
 
 def main() -> int:
-    url = os.environ.get("NULLGUARD_ES_URL", "http://localhost:9200").rstrip("/")
+    url = os.environ.get("ZEROCHECK_ES_URL", "http://localhost:9200").rstrip("/")
     backend, _ = build_lab()
     lines = []
     for event in backend.events:

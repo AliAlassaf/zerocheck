@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from nullguard import intervals as iv
+from zerocheck import intervals as iv
 
 T = lambda h: datetime(2026, 1, 1, h, tzinfo=timezone.utc)  # noqa: E731
 

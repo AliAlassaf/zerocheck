@@ -42,12 +42,12 @@ class ElasticBackend(Backend):
     @classmethod
     def from_env(cls) -> "ElasticBackend":
         return cls(
-            url=os.environ.get("NULLGUARD_ES_URL", "http://localhost:9200"),
-            api_key=os.environ.get("NULLGUARD_ES_API_KEY"),
-            username=os.environ.get("NULLGUARD_ES_USERNAME"),
-            password=os.environ.get("NULLGUARD_ES_PASSWORD"),
-            ca_cert=os.environ.get("NULLGUARD_ES_CA_CERT"),
-            verify_tls=os.environ.get("NULLGUARD_ES_VERIFY_TLS", "true").lower() != "false",
+            url=os.environ.get("ZEROCHECK_ES_URL", "http://localhost:9200"),
+            api_key=os.environ.get("ZEROCHECK_ES_API_KEY"),
+            username=os.environ.get("ZEROCHECK_ES_USERNAME"),
+            password=os.environ.get("ZEROCHECK_ES_PASSWORD"),
+            ca_cert=os.environ.get("ZEROCHECK_ES_CA_CERT"),
+            verify_tls=os.environ.get("ZEROCHECK_ES_VERIFY_TLS", "true").lower() != "false",
         )
 
     def _search(self, index: str, body: dict[str, Any]) -> dict[str, Any]:

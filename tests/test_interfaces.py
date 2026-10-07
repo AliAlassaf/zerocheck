@@ -1,9 +1,9 @@
 import json
 from datetime import timedelta
 
-from nullguard import cli, load_catalog
-from nullguard.backends.elastic import ElasticBackend
-from nullguard.demo import NOW
+from zerocheck import cli, load_catalog
+from zerocheck.backends.elastic import ElasticBackend
+from zerocheck.demo import NOW
 
 
 def test_catalog_loads_builtin_questions():
@@ -36,11 +36,11 @@ def test_verify_command_on_ndjson(tmp_path, capsys):
 
 
 def test_mcp_tool(monkeypatch, tmp_path):
-    from nullguard import mcp_server
+    from zerocheck import mcp_server
 
     events = tmp_path / "e.ndjson"
     events.write_text("")
-    monkeypatch.setenv("NULLGUARD_NDJSON", str(events))
+    monkeypatch.setenv("ZEROCHECK_NDJSON", str(events))
     monkeypatch.setattr(mcp_server, "_verifier", None)
     assert any(q["id"] == "process_execution" for q in mcp_server.list_questions())
     result = mcp_server.verify_search("process_execution", "WS", "2026-10-06T00:00:00Z",

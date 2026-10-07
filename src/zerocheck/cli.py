@@ -1,4 +1,4 @@
-"""Command-line interface: `nullguard verify`, `nullguard questions`, `nullguard demo`."""
+"""Command-line interface: `zerocheck verify`, `zerocheck questions`, `zerocheck demo`."""
 
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ def _backend(args: argparse.Namespace):
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="nullguard", description="Tell a verified negative from a blind spot."
+        prog="zerocheck", description="Tell a verified negative from a blind spot."
     )
     parser.add_argument("--catalog", action="append", default=[], help="extra question catalog file or directory")
     sub = parser.add_subparsers(dest="command", required=True)

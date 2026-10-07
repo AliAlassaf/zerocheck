@@ -28,10 +28,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e '.[mcp,dev]'
-      - run: nullguard demo
+      - run: zerocheck demo
       - run: python scripts/load_demo_into_elastic.py
         env:
-          NULLGUARD_ES_URL: http://localhost:9200
+          ZEROCHECK_ES_URL: http://localhost:9200
       - run: pytest -v
         env:
-          NULLGUARD_ES_URL: http://localhost:9200
+          ZEROCHECK_ES_URL: http://localhost:9200

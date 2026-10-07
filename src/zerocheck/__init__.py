@@ -1,4 +1,4 @@
-"""NullGuard: tell a verified negative from a blind spot."""
+"""ZeroCheck: tell a verified negative from a blind spot."""
 
 from .catalog import load_catalog
 from .models import Gap, GapReason, Question, Result, Source, Verdict

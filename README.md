@@ -1,9 +1,9 @@
-# NullGuard
+# ZeroCheck
 
-**Zero results ≠ zero activity.** NullGuard tells an analyst, or an AI SOC agent, whether an empty SIEM search is a *verified negative* or a *blind spot*.
+**Zero results ≠ zero activity.** ZeroCheck tells an analyst, or an AI SOC agent, whether an empty SIEM search is a *verified negative* or a *blind spot*.
 
 ```
-$ nullguard verify -q process_execution -e WS-02 --start 2026-10-06T01:00Z --end 2026-10-06T05:00Z -m process.name=mimikatz.exe
+$ zerocheck verify -q process_execution -e WS-02 --start 2026-10-06T01:00Z --end 2026-10-06T05:00Z -m process.name=mimikatz.exe
 
 INSUFFICIENT VISIBILITY — zero results here do NOT mean it didn't happen
   question : process_execution on WS-02
@@ -25,7 +25,7 @@ AI SOC agents make this worse: they run most of the queries now, and an agent th
 
 ## What it does
 
-For one **investigative question** (for example, *did this process run on this host?*), one **entity** and one **time window**, NullGuard runs the search and also checks whether the telemetry needed to answer it was actually there:
+For one **investigative question** (for example, *did this process run on this host?*), one **entity** and one **time window**, ZeroCheck runs the search and also checks whether the telemetry needed to answer it was actually there:
 
 | Check | Catches |
 |---|---|
@@ -49,25 +49,25 @@ Sources are **alternatives**: if Sysmon was down but Security 4688 covered the s
 | [deadair](https://pkg.go.dev/github.com/alephnull-sh/deadair) | Detection rule | "Which of my enabled rules are blind?" |
 | [DeTT&CT](https://github.com/rabobank-cdc/DeTTECT) | ATT&CK technique | "Where is my visibility weak, strategically?" |
 | SIEM health dashboards | Connector / data source | "Is this feed up?" |
-| **NullGuard** | **One search on one entity and time window, during an investigation** | **"Can I trust *this* zero?"** |
+| **ZeroCheck** | **One search on one entity and time window, during an investigation** | **"Can I trust *this* zero?"** |
 
-These tools complement each other. deadair tells you which rules are blind; NullGuard tells you which conclusions are blind.
+These tools complement each other. deadair tells you which rules are blind; ZeroCheck tells you which conclusions are blind.
 
 ## Quick start
 
 ```bash
 pip install -e '.[mcp,dev]'
 
-nullguard demo        # six scenarios: found, real negative, sensor outage, parser drift, ingestion lag, retention
-nullguard questions   # list the built-in investigative questions
+zerocheck demo        # six scenarios: found, real negative, sensor outage, parser drift, ingestion lag, retention
+zerocheck questions   # list the built-in investigative questions
 ```
 
 ### Against Elasticsearch / Elastic Security
 
 ```bash
-export NULLGUARD_ES_URL=https://localhost:9200
-export NULLGUARD_ES_API_KEY=...            # or NULLGUARD_ES_USERNAME / NULLGUARD_ES_PASSWORD
-nullguard verify -q user_logon -e DC01 --start 2026-10-06T00:00Z --end 2026-10-06T06:00Z -m user.name=svc_backup
+export ZEROCHECK_ES_URL=https://localhost:9200
+export ZEROCHECK_ES_API_KEY=...            # or ZEROCHECK_ES_USERNAME / ZEROCHECK_ES_PASSWORD
+zerocheck verify -q user_logon -e DC01 --start 2026-10-06T00:00Z --end 2026-10-06T06:00Z -m user.name=svc_backup
 ```
 
 The exit code is `0` for FOUND or VERIFIED_NEGATIVE and `3` for INSUFFICIENT_VISIBILITY, so it can gate a playbook step. Add `--json` for machine-readable output.
@@ -77,7 +77,7 @@ To try it on a local cluster:
 ```bash
 docker run -d -p 9200:9200 -e discovery.type=single-node -e xpack.security.enabled=false elasticsearch:8.15.3
 python scripts/load_demo_into_elastic.py
-NULLGUARD_ES_URL=http://localhost:9200 pytest tests/test_elastic_integration.py
+ZEROCHECK_ES_URL=http://localhost:9200 pytest tests/test_elastic_integration.py
 ```
 
 ### As an MCP server for AI SOC agents
@@ -85,9 +85,9 @@ NULLGUARD_ES_URL=http://localhost:9200 pytest tests/test_elastic_integration.py
 ```json
 {
   "mcpServers": {
-    "nullguard": {
-      "command": "nullguard-mcp",
-      "env": { "NULLGUARD_ES_URL": "https://localhost:9200", "NULLGUARD_ES_API_KEY": "..." }
+    "zerocheck": {
+      "command": "zerocheck-mcp",
+      "env": { "ZEROCHECK_ES_URL": "https://localhost:9200", "ZEROCHECK_ES_API_KEY": "..." }
     }
   }
 }
@@ -97,7 +97,7 @@ The server exposes `list_questions` and `verify_search`. Its instructions tell t
 
 ## Question catalog
 
-Questions are YAML. The built-ins in [`src/nullguard/catalog/windows.yaml`](src/nullguard/catalog/windows.yaml) cover process execution, network connections, DNS, logons, PowerShell script blocks and scheduled task creation, using Elastic Agent data stream names. To add your own or override them, pass `--catalog my_questions.yaml`:
+Questions are YAML. The built-ins in [`src/zerocheck/catalog/windows.yaml`](src/zerocheck/catalog/windows.yaml) cover process execution, network connections, DNS, logons, PowerShell script blocks and scheduled task creation, using Elastic Agent data stream names. To add your own or override them, pass `--catalog my_questions.yaml`:
 
 ```yaml
 - id: process_execution
@@ -138,7 +138,7 @@ For rare events (such as 4698 task creation), the event's own silence proves not
 ## Development
 
 ```bash
-pytest                    # unit tests, plus Elastic integration tests when NULLGUARD_ES_URL is set
+pytest                    # unit tests, plus Elastic integration tests when ZEROCHECK_ES_URL is set
 ```
 
 Licensed under Apache 2.0.

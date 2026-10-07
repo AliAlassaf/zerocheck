@@ -1,7 +1,7 @@
 """MCP server so AI SOC agents can check an empty result before closing a case.
 
-Run with `nullguard-mcp` (stdio). Configure Elasticsearch with NULLGUARD_ES_* env vars,
-or set NULLGUARD_NDJSON to a file of events for offline use.
+Run with `zerocheck-mcp` (stdio). Configure Elasticsearch with ZEROCHECK_ES_* env vars,
+or set ZEROCHECK_NDJSON to a file of events for offline use.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from .catalog import load_catalog
 from .verifier import Verifier
 
 server = MCPServer(
-    name="nullguard",
+    name="zerocheck",
     instructions=(
         "Before concluding that activity did not happen because a search returned no results, "
         "call verify_search. Only a VERIFIED_NEGATIVE verdict supports that conclusion. "
@@ -31,8 +31,8 @@ _verifier: Verifier | None = None
 def _get_verifier() -> Verifier:
     global _verifier
     if _verifier is None:
-        extra = [p for p in os.environ.get("NULLGUARD_CATALOG", "").split(os.pathsep) if p]
-        ndjson = os.environ.get("NULLGUARD_NDJSON")
+        extra = [p for p in os.environ.get("ZEROCHECK_CATALOG", "").split(os.pathsep) if p]
+        ndjson = os.environ.get("ZEROCHECK_NDJSON")
         backend = MemoryBackend.from_ndjson(ndjson) if ndjson else ElasticBackend.from_env()
         _verifier = Verifier(backend, load_catalog(*extra))
     return _verifier
