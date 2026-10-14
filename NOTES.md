@@ -117,9 +117,13 @@ zerocheck verify -q process_execution -e WS-02 --start 01:00 --end 05:00 -m proc
 - `ignore_unavailable` و`allow_no_indices`: الفهرس غير الموجود يُرجع صفراً (فيصبح `source_empty`) بدل أن يرمي خطأ.
 - 401 و403 تتحول إلى `AccessDenied`.
 
-اختبار التكامل يتأكد أن Elastic والذاكرة يعطيان **نفس الحكم ونفس الفترات العمياء** على بيانات الـ demo.
+**وضع Kibana:** كثير من المختبرات (مثل TryHackMe) تفتح Kibana فقط، لا منفذ Elasticsearch ‏9200. عند ضبط `ZEROCHECK_KIBANA_URL` يرسل الـ backend نفس الاستعلامات عبر `/api/console/proxy` في Kibana، وهو نفس ما تستخدمه أداة Dev Tools، مع ترويسة `kbn-xsrf`. فشل تسجيل الدخول (401) يوقف التشغيل بخطأ واضح، لأنه خطأ إعدادات وليس فجوة في البيانات. أما رفض الصلاحية لفهرس معيّن (403) فيبقى `no_access`.
+
+اختبار التكامل يتأكد أن Elastic والذاكرة يعطيان **نفس الحكم ونفس الفترات العمياء** على بيانات الـ demo، مباشرة وعبر Kibana.
 
 ### 4.4 `catalog/`: الأسئلة التحقيقية
+
+وهناك أيضاً `examples/catalogs/winlogbeat.yaml` لبيانات Winlogbeat (فهرس واحد `winlogbeat-*` تُميَّز فيه القنوات بالحقل `winlog.channel`)، وهو خارج المجلد المدمج حتى لا يحل محل الأسئلة الأصلية، ويُمرَّر بـ `--catalog`.
 
 `windows.yaml` يحتوي ستة أسئلة: تشغيل عملية، اتصال شبكي، استعلام DNS، تسجيل دخول، سكربت PowerShell، وإنشاء مهمة مجدولة. أسماء الفهارس مطابقة لـ Elastic Agent integrations.
 

@@ -1,0 +1,90 @@
+# Investigative questions for Windows data shipped by Winlogbeat into `winlogbeat-*`
+# indices (one index for all channels, told apart by `winlog.channel`).
+# Used by many training labs, for example TryHackMe's Boogeyman rooms.
+#
+#   zerocheck --catalog examples/catalogs/winlogbeat.yaml verify -q process_execution ...
+#
+# Field names assume Winlogbeat's Sysmon / Security / PowerShell modules (ECS fields such
+# as process.name). If your data only has raw winlog.event_data.* fields, ZeroCheck will
+# report `field_missing`; change match_fields and required_fields to the raw names.
+#
+# Liveness is judged from the whole channel, so a quiet period without new processes is
+# not mistaken for a dead sensor.
+
+- id: process_execution
+  description: Did a given process run on a host?
+  entity_field: host.name
+  match_fields: [process.name, process.executable, process.command_line, process.parent.name, user.name]
+  sources:
+    - name: sysmon_process_create
+      index: winlogbeat-*
+      filter: {event.code: "1", winlog.channel: "Microsoft-Windows-Sysmon/Operational"}
+      liveness_filter: {winlog.channel: "Microsoft-Windows-Sysmon/Operational"}
+      required_fields: [process.name, process.command_line]
+      max_silence: 30m
+    - name: security_4688
+      index: winlogbeat-*
+      filter: {event.code: "4688", winlog.channel: "Security"}
+      liveness_filter: {winlog.channel: "Security"}
+      required_fields: [process.name]
+      max_silence: 30m
+
+- id: network_connection
+  description: Did a host open a connection to a given destination?
+  entity_field: host.name
+  match_fields: [destination.ip, destination.port, destination.domain, process.name]
+  sources:
+    - name: sysmon_network_connect
+      index: winlogbeat-*
+      filter: {event.code: "3", winlog.channel: "Microsoft-Windows-Sysmon/Operational"}
+      liveness_filter: {winlog.channel: "Microsoft-Windows-Sysmon/Operational"}
+      required_fields: [destination.ip, process.name]
+      max_silence: 30m
+
+- id: dns_query
+  description: Did a host resolve a given domain?
+  entity_field: host.name
+  match_fields: [dns.question.name, process.name]
+  sources:
+    - name: sysmon_dns_query
+      index: winlogbeat-*
+      filter: {event.code: "22", winlog.channel: "Microsoft-Windows-Sysmon/Operational"}
+      liveness_filter: {winlog.channel: "Microsoft-Windows-Sysmon/Operational"}
+      required_fields: [dns.question.name]
+      max_silence: 30m
+
+- id: user_logon
+  description: Did an account log on to a host?
+  entity_field: host.name
+  match_fields: [user.name, source.ip, winlog.logon.type]
+  sources:
+    - name: security_4624
+      index: winlogbeat-*
+      filter: {event.code: "4624", winlog.channel: "Security"}
+      liveness_filter: {winlog.channel: "Security"}
+      required_fields: [user.name]
+      max_silence: 30m
+
+- id: powershell_script
+  description: Did a PowerShell script block containing given content run on a host?
+  entity_field: host.name
+  match_fields: [powershell.file.script_block_text, user.name]
+  sources:
+    - name: powershell_4104
+      index: winlogbeat-*
+      filter: {event.code: "4104", winlog.channel: "Microsoft-Windows-PowerShell/Operational"}
+      liveness_filter: {winlog.channel: "Microsoft-Windows-PowerShell/Operational"}
+      required_fields: [powershell.file.script_block_text]
+      max_silence: 4h
+
+- id: scheduled_task_created
+  description: Was a scheduled task created on a host?
+  entity_field: host.name
+  match_fields: [winlog.event_data.TaskName, user.name]
+  sources:
+    - name: security_4698
+      index: winlogbeat-*
+      filter: {event.code: "4698", winlog.channel: "Security"}
+      liveness_filter: {winlog.channel: "Security"}
+      required_fields: [winlog.event_data.TaskName]
+      max_silence: 30m

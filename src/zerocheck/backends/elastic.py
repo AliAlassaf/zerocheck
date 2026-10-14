@@ -7,6 +7,7 @@ import json
 import os
 import ssl
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -16,6 +17,10 @@ from .base import AccessDenied, Backend, BackendError
 
 
 class ElasticBackend(Backend):
+    """Talks to Elasticsearch directly, or through Kibana's console proxy when `via_kibana`
+    is set. The proxy is what Kibana Dev Tools uses, so it works where only Kibana is exposed.
+    """
+
     def __init__(
         self,
         url: str,
@@ -25,10 +30,14 @@ class ElasticBackend(Backend):
         ca_cert: str | None = None,
         verify_tls: bool = True,
         timeout: float = 30.0,
+        via_kibana: bool = False,
     ):
         self.url = url.rstrip("/")
         self.timeout = timeout
+        self.via_kibana = via_kibana
         self.headers = {"Content-Type": "application/json"}
+        if via_kibana:
+            self.headers["kbn-xsrf"] = "true"
         if api_key:
             self.headers["Authorization"] = f"ApiKey {api_key}"
         elif username:
@@ -41,8 +50,10 @@ class ElasticBackend(Backend):
 
     @classmethod
     def from_env(cls) -> "ElasticBackend":
+        kibana = os.environ.get("ZEROCHECK_KIBANA_URL")
         return cls(
-            url=os.environ.get("ZEROCHECK_ES_URL", "http://localhost:9200"),
+            url=kibana or os.environ.get("ZEROCHECK_ES_URL", "http://localhost:9200"),
+            via_kibana=bool(kibana),
             api_key=os.environ.get("ZEROCHECK_ES_API_KEY"),
             username=os.environ.get("ZEROCHECK_ES_USERNAME"),
             password=os.environ.get("ZEROCHECK_ES_PASSWORD"),
@@ -51,8 +62,13 @@ class ElasticBackend(Backend):
         )
 
     def _search(self, index: str, body: dict[str, Any]) -> dict[str, Any]:
+        path = f"{index}/_search?ignore_unavailable=true&allow_no_indices=true"
+        if self.via_kibana:
+            url = f"{self.url}/api/console/proxy?path={urllib.parse.quote(path, safe='')}&method=POST"
+        else:
+            url = f"{self.url}/{path}"
         request = urllib.request.Request(
-            f"{self.url}/{index}/_search?ignore_unavailable=true&allow_no_indices=true",
+            url,
             data=json.dumps(body).encode(),
             headers=self.headers,
             method="POST",
@@ -62,8 +78,14 @@ class ElasticBackend(Backend):
                 return json.load(resp)
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode(errors="replace")[:500]
-            if exc.code in (401, 403):
-                raise AccessDenied(f"{exc.code} reading {index}: {detail}") from exc
+            if exc.code == 401:
+                # Login failed: a configuration error, not a blind spot in the data.
+                raise BackendError(
+                    f"authentication failed at {self.url} (401); check ZEROCHECK_ES_USERNAME / "
+                    "ZEROCHECK_ES_PASSWORD or ZEROCHECK_ES_API_KEY"
+                ) from exc
+            if exc.code == 403:
+                raise AccessDenied(f"403 reading {index}: {detail}") from exc
             raise BackendError(f"{exc.code} reading {index}: {detail}") from exc
         except urllib.error.URLError as exc:
             raise BackendError(f"cannot reach {self.url}: {exc.reason}") from exc

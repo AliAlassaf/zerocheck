@@ -54,3 +54,54 @@ def test_elastic_query_shape():
     assert clauses[0]["bool"]["should"][0]["term"]["event.code"]["value"] == "1"
     assert len(clauses[1]["bool"]["should"]) == 2
     assert clauses[2]["range"]["@timestamp"]["lt"] == NOW.isoformat()
+
+
+def _http_error(code):
+    import io
+    import urllib.error
+
+    def raise_it(*_args, **_kwargs):
+        raise urllib.error.HTTPError("http://x", code, "err", {}, io.BytesIO(b"{}"))
+    return raise_it
+
+
+def test_elastic_login_failure_is_an_error_not_a_gap(monkeypatch):
+    import pytest
+    import urllib.request
+
+    from zerocheck.backends import AccessDenied, BackendError
+
+    backend = ElasticBackend("http://kibana:5601", username="u", password="p", via_kibana=True)
+    monkeypatch.setattr(urllib.request, "urlopen", _http_error(401))
+    with pytest.raises(BackendError, match="authentication failed"):
+        backend.count("winlogbeat-*", {}, NOW - timedelta(hours=1), NOW)
+    monkeypatch.setattr(urllib.request, "urlopen", _http_error(403))
+    with pytest.raises(AccessDenied):
+        backend.count("winlogbeat-*", {}, NOW - timedelta(hours=1), NOW)
+
+
+def test_kibana_mode_routes_through_console_proxy(monkeypatch):
+    import urllib.request
+
+    seen = {}
+
+    class Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return b'{"hits": {"total": {"value": 3}}}'
+
+    def fake_urlopen(request, **_kwargs):
+        seen["url"], seen["headers"] = request.full_url, dict(request.header_items())
+        return Resp()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    backend = ElasticBackend("http://kibana:5601/", via_kibana=True)
+    assert backend.count("winlogbeat-*", {}, NOW - timedelta(hours=1), NOW) == 3
+    assert seen["url"].startswith("http://kibana:5601/api/console/proxy?path=winlogbeat-%2A%2F_search")
+    assert seen["url"].endswith("&method=POST")
+    assert seen["headers"].get("Kbn-xsrf") == "true"

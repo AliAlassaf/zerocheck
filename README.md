@@ -72,6 +72,18 @@ zerocheck verify -q user_logon -e DC01 --start 2026-10-06T00:00Z --end 2026-10-0
 
 The exit code is `0` for FOUND or VERIFIED_NEGATIVE and `3` for INSUFFICIENT_VISIBILITY, so it can gate a playbook step. Add `--json` for machine-readable output.
 
+### Through Kibana only (for example, TryHackMe labs)
+
+Many labs expose Kibana but not Elasticsearch's port 9200. Point ZeroCheck at Kibana and it sends the same queries through Kibana's console proxy (the one Dev Tools uses), with the same username and password you use to log in:
+
+```bash
+export ZEROCHECK_KIBANA_URL=http://MACHINE_IP          # the address you open Kibana with
+export ZEROCHECK_ES_USERNAME=... ZEROCHECK_ES_PASSWORD=...
+zerocheck --catalog examples/catalogs/winlogbeat.yaml verify -q process_execution -e HOST --start ... --end ... -m process.name=...
+```
+
+[`examples/catalogs/winlogbeat.yaml`](examples/catalogs/winlogbeat.yaml) maps the questions to Winlogbeat's `winlogbeat-*` indices, where channels are told apart by `winlog.channel`.
+
 To try it on a local cluster:
 
 ```bash
@@ -135,7 +147,7 @@ Method, findings and limitations (the recordings are seconds long, so thresholds
 - An audit policy disabled on *one* host, while its channel stays alive, is not detected. A policy disabled everywhere shows up as `source_empty`.
 - Field drift is judged across the whole window, not per minute.
 - Matching uses exact values (case-insensitive). Wildcards and free text are not supported yet.
-- Elastic is the only SIEM backend so far.
+- Elastic is the only SIEM backend so far (directly or through Kibana).
 
 ## Roadmap
 
