@@ -60,6 +60,8 @@ These tools complement each other. deadair tells you which rules are blind; Zero
 ## Quick start
 
 ```bash
+git clone https://github.com/AliAlassaf/zerocheck.git && cd zerocheck
+python3 -m venv .venv && . .venv/bin/activate
 pip install -e '.[mcp,dev]'
 
 zerocheck demo        # six scenarios: found, real negative, sensor outage, parser drift, ingestion lag, retention
