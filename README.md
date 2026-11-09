@@ -1,6 +1,10 @@
 # ZeroCheck
 
+[![CI](https://github.com/AliAlassaf/zerocheck/actions/workflows/ci.yml/badge.svg)](https://github.com/AliAlassaf/zerocheck/actions/workflows/ci.yml) ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue) ![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green) ![MCP server](https://img.shields.io/badge/MCP-server-8A2BE2)
+
 **Zero results ≠ zero activity.** ZeroCheck tells an analyst, or an AI SOC agent, whether an empty SIEM search is a *verified negative* or a *blind spot*.
+
+![ZeroCheck demo: the same empty mimikatz search is a verified negative on a healthy host, and a blind spot on a host whose sensors went silent](docs/zerocheck-demo.gif)
 
 ```
 $ zerocheck verify -q process_execution -e WS-02 --start 2026-10-06T01:00Z --end 2026-10-06T05:00Z -m process.name=mimikatz.exe
